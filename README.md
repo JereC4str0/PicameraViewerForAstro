@@ -135,7 +135,4 @@ Este proyecto está bajo la Licencia MIT - ver el archivo LICENSE para más deta
 - Comunidad de Raspberry Pi
 - Contribuidores del proyecto
 
-## Contacto
 
-[Tu Nombre] - [tu@email.com]
-Link del proyecto: [url-del-repositorio]
