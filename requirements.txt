@@ -1,0 +1,18 @@
+# Core Libraries
+numpy>=1.21.0
+Pillow>=9.0.0
+opencv-python>=4.5.0
+RPi.GPIO>=0.7.0
+
+# GUI Libraries
+tk>=0.1.0
+
+# Image Processing
+scikit-image>=0.19.0
+
+# Raspberry Pi Specific
+picamera2>=0.3.12
+
+# Optional but recommended
+matplotlib>=3.5.0  # For debugging and image analysis
+scipy>=1.7.0       # For advanced image processing

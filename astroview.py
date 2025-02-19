@@ -89,6 +89,9 @@ class TelescopeCamera:
         self._create_stack_controls()
         self._create_image_controls()
 
+        if self.use_motors:
+            self._create_motor_controls()
+
     def _create_exposure_controls(self):
         """Create exposure and gain controls"""
         exp_frame = ttk.LabelFrame(self.control_frame, text="Exposure")
@@ -141,13 +144,15 @@ class TelescopeCamera:
         self.threshold_scale.set(self.threshold_value)
         self.threshold_scale.pack(fill="x")
         
-        threshold_button = ttk.Button(img_frame, text="Threshold Mode", command=self._toggle_threshold)
-        threshold_button.pack(fill="x")
+        self.threshold_button = ttk.Button(img_frame, text="Threshold Mode", 
+                                         command=self._toggle_threshold)
+        self.threshold_button.pack(fill="x")
         
         # Dark frame controls
         ttk.Button(img_frame, text="Load Dark", command=self._load_dark_frame).pack(fill="x")
-        dark_toggle = ttk.Checkbutton(img_frame, text="Use Dark", command=self._toggle_dark_mode)
-        dark_toggle.pack(fill="x")
+        self.dark_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(img_frame, text="Use Dark", variable=self.dark_var,
+                       command=self._toggle_dark_mode).pack(fill="x")
         
         # Level adjustment
         ttk.Label(img_frame, text="Brightness:").pack()
@@ -161,6 +166,33 @@ class TelescopeCamera:
                                       command=lambda v: setattr(self, 'contrast', float(v)))
         self.contrast_scale.set(1.0)
         self.contrast_scale.pack(fill="x")
+
+    def _create_motor_controls(self):
+        """Create motor control panel"""
+        motor_frame = ttk.LabelFrame(self.control_frame, text="Motor Control")
+        motor_frame.pack(fill="x", padx=5, pady=5)
+        
+        # RA controls
+        ra_frame = ttk.LabelFrame(motor_frame, text="RA")
+        ra_frame.pack(fill="x", padx=5, pady=5)
+        
+        ttk.Button(ra_frame, text="Track", 
+                  command=lambda: self.motor_controller.set_ra_direction(1)).pack(side="left")
+        ttk.Button(ra_frame, text="Stop", 
+                  command=lambda: self.motor_controller.set_ra_direction(0)).pack(side="left")
+        ttk.Button(ra_frame, text="Reverse", 
+                  command=lambda: self.motor_controller.set_ra_direction(-1)).pack(side="left")
+        
+        # DEC controls
+        dec_frame = ttk.LabelFrame(motor_frame, text="DEC")
+        dec_frame.pack(fill="x", padx=5, pady=5)
+        
+        ttk.Button(dec_frame, text="North", 
+                  command=lambda: self.motor_controller.move_dec(0.5)).pack(side="left")
+        ttk.Button(dec_frame, text="Stop", 
+                  command=lambda: self.motor_controller.move_dec(0)).pack(side="left")
+        ttk.Button(dec_frame, text="South", 
+                  command=lambda: self.motor_controller.move_dec(-0.5)).pack(side="left")
 
     def start_threads(self):
         """Start the processing threads"""
@@ -250,4 +282,148 @@ class TelescopeCamera:
             return
             
         # Extract zoom region
-        y1 = self.y_zoom_center - self.zoom_
+        y1 = self.y_zoom_center - self.zoom_window_hw
+        y2 = self.y_zoom_center + self.zoom_window_hw
+        x1 = self.x_zoom_center - self.zoom_window_hw
+        x2 = self.x_zoom_center + self.zoom_window_hw
+        
+        # Ensure coordinates are within bounds
+        y1 = max(0, min(y1, self.sensor_h - 2*self.zoom_window_hw))
+        y2 = min(self.sensor_h, y2)
+        x1 = max(0, min(x1, self.sensor_w - 2*self.zoom_window_hw))
+        x2 = min(self.sensor_w, x2)
+        
+        zoom_image = self.current_frame[y1:y2, x1:x2].copy()
+        
+        # Apply threshold if enabled
+        if self.threshold_enabled:
+            gray = cv2.cvtColor(zoom_image, cv2.COLOR_BGR2GRAY)
+            _, zoom_image = cv2.threshold(gray, self.threshold_value, 255, cv2.THRESH_BINARY)
+            zoom_image = cv2.cvtColor(zoom_image, cv2.COLOR_GRAY2BGR)
+        
+        # Resize for display
+        zoom_image = cv2.resize(zoom_image, (256, 256))
+        
+        # Convert to PhotoImage
+        image = Image.fromarray(cv2.cvtColor(zoom_image, cv2.COLOR_BGR2RGB))
+        photo = ImageTk.PhotoImage(image=image)
+        
+        # Update display
+        self.zoom_image.configure(image=photo)
+        self.zoom_image.image = photo
+
+    def _change_exposure(self, value):
+        """Change camera exposure time"""
+        exp_sec = 2 ** float(value)
+        self.camera.set_exposure_time(int(exp_sec * 1000000))
+
+    def _change_gain(self, value):
+        """Change camera gain"""
+        self.camera.set_analog_gain(float(value))
+
+    def _reset_stack(self):
+        """Reset the image stack"""
+        self.stack_busy = True
+        self.stack_image = None
+        self.stack_counter = 0
+        self.stack_counter_var.set("0")
+        self.stack_busy = False
+    def _save_stack(self):
+        """Save the current stack to file"""
+        if self.stack_counter == 0 or self.stack_image is None:
+            return
+            
+        self.stack_busy = True
+        timestamp = time.strftime("%Y%m%d%H%M%S")
+        filename = f"Pictures/PCIM{timestamp}.tif"
+        
+        # Normalize and save
+        save_image = self.stack_image / self.stack_counter
+        save_image = np.clip(save_image, 0, 65535).astype(np.uint16)
+        cv2.imwrite(filename, save_image)
+        
+        print(f'Stacked Image Saved at {timestamp}')
+        self._reset_stack()
+        self.stack_busy = False
+
+    def _toggle_stack_show(self):
+        """Toggle stack display mode"""
+        self.stack_show = not self.stack_show
+
+    def _toggle_threshold(self):
+        """Toggle threshold mode"""
+        self.threshold_enabled = not self.threshold_enabled
+        if self.threshold_enabled:
+            self.threshold_button.configure(style='Accent.TButton')
+        else:
+            self.threshold_button.configure(style='TButton')
+
+    def _toggle_dark_mode(self):
+        """Toggle dark frame subtraction"""
+        self.dark_mode = self.dark_var.get()
+
+    def _load_dark_frame(self):
+        """Load a dark frame from file"""
+        filename = filedialog.askopenfilename(
+            title="Select Dark Frame",
+            filetypes=[("TIFF files", "*.tif"), ("All files", "*.*")]
+        )
+        if filename:
+            try:
+                self.dark_frame = cv2.imread(filename, -1)
+                print("Dark frame loaded successfully")
+                self.dark_var.set(True)
+                self._toggle_dark_mode()
+            except Exception as e:
+                print(f"Error loading dark frame: {e}")
+
+    def _on_image_click(self, event):
+        """Handle click on main image for zoom positioning"""
+        if not hasattr(self, 'current_frame'):
+            return
+            
+        # Calculate actual image coordinates from click position
+        scale = 5  # Since we're displaying at 1/5 size
+        x = int(event.x * scale)
+        y = int(event.y * scale)
+        
+        # Update zoom center
+        self.x_zoom_center = min(max(x, self.zoom_window_hw), 
+                                self.sensor_w - self.zoom_window_hw)
+        self.y_zoom_center = min(max(y, self.zoom_window_hw), 
+                                self.sensor_h - self.zoom_window_hw)
+
+    def _on_closing(self):
+        """Clean up and close the application"""
+        self.run_camera = False
+        
+        # Stop all threads
+        if hasattr(self, 'capture_thread') and self.capture_thread.is_alive():
+            self.capture_thread.join(timeout=1.0)
+        if hasattr(self, 'display_thread') and self.display_thread.is_alive():
+            self.display_thread.join(timeout=1.0)
+        
+        # Stop camera
+        if hasattr(self, 'camera'):
+            self.camera.stop()
+        
+        # Stop motors if enabled
+        if self.use_motors and hasattr(self, 'motor_controller'):
+            self.motor_controller.stop()
+        
+        # Close window
+        self.window.destroy()
+
+def main():
+    """Main entry point"""
+    parser = argparse.ArgumentParser(description='Telescope Camera Control')
+    parser.add_argument('--motors', action='store_true',
+                       help='Enable motor control functionality')
+    args = parser.parse_args()
+    
+    app = TelescopeCamera(use_motors=args.motors)
+
+if __name__ == "__main__":
+    main()
+            
+      
