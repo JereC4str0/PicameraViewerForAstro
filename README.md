@@ -1,75 +1,141 @@
 # Telescope Camera Control
 
-This application provides a GUI interface for controlling a telescope camera system with optional motor control functionality. The code has been structured to separate the motor control logic from the image processing and GUI components.
+Un sistema de control de cámara para telescopios basado en Raspberry Pi utilizando libcamera. Este proyecto permite el control de la cámara, apilamiento de imágenes y opcionalmente control de motores para seguimiento.
 
-## Features
+## Características
 
-- Live camera feed with zoom capability
-- Image stacking
-- Exposure and gain control
-- Threshold detection
-- Level adjustment
-- Optional motor control for RA and DEC axes
+- Captura de imágenes usando libcamera
+- Interfaz gráfica intuitiva
+- Control de exposición y ganancia
+- Apilamiento de imágenes en tiempo real
+- Visualización de zoom para enfoque preciso
+- Procesamiento de dark frames
+- Control de motores opcional para seguimiento (RA/DEC)
 
-## File Structure
+## Requisitos de Hardware
 
-- `main.py`: Main application with GUI and image processing
-- `motor_control.py`: Separate module for motor control functionality
-- `temp/`: Directory for temporary image files
-- `Pictures/`: Directory for saved stacked images
+- Raspberry Pi (3 o superior recomendado)
+- Cámara HQ de Raspberry Pi
+- Motores paso a paso (opcional, para seguimiento)
+- Controladores de motor (si se usan motores)
 
-## Requirements
+## Instalación
 
-- Python 3.x
-- OpenCV (cv2)
-- NumPy
-- Pillow (PIL)
-- RPi.GPIO (for motor control)
-- Tkinter
+1. Clona el repositorio:
+```bash
+git clone [url-del-repositorio]
+cd telescope-camera
+```
 
-## Usage
+2. Instala las dependencias del sistema:
+```bash
+sudo apt-get update
+sudo apt-get install -y python3-picamera2 python3-opencv python3-numpy python3-pil
+```
 
-### Basic Usage (No Motors)
+3. Instala las dependencias de Python:
+```bash
+pip install -r requirements.txt
+```
 
+## Estructura del Proyecto
+
+```
+telescope-camera/
+├── main.py              # Aplicación principal
+├── camera_control.py    # Control de la cámara
+├── motor_control.py     # Control de motores
+├── requirements.txt     # Dependencias
+├── temp/               # Directorio temporal
+└── Pictures/           # Directorio para imágenes guardadas
+```
+
+## Uso
+
+### Modo Básico (sin motores)
 ```bash
 python main.py
 ```
 
-### With Motor Control
-
+### Con Control de Motores
 ```bash
 python main.py --motors
 ```
 
-## GUI Components
+## Características de la Interfaz
 
-1. Main Image Display
-   - Shows live camera feed or stacked image
-   - Click to set zoom position
+### Panel Principal
+- Visualización en tiempo real de la imagen de la cámara
+- Ventana de zoom para enfoque preciso
+- Controles de exposición y ganancia
 
-2. Zoom Window
-   - Shows detailed view of selected region
-   - Threshold detection for star tracking
+### Control de Apilamiento
+- Apilamiento automático de imágenes
+- Control de número máximo de imágenes a apilar
+- Guardado de imágenes apiladas
+- Visualización de imagen apilada en tiempo real
 
-3. Control Panel
-   - Exposure control
-   - Gain adjustment
-   - Stack controls (Reset, Save, Show Stack)
-   - Image adjustment controls
+### Ajustes de Imagen
+- Control de brillo y contraste
+- Modo umbral para detección de estrellas
+- Sustracción de dark frame
+- Ajustes de nivel
 
-## Motor Control
+### Control de Motores (si está habilitado)
+- Control de movimiento en RA (Ascensión Recta)
+- Control de movimiento en DEC (Declinación)
+- Velocidades ajustables
+- Modo de seguimiento
 
-The motor control system is completely separated from the main application and can be enabled with the `--motors` flag. When enabled, it provides:
+## Configuración de GPIO
 
-- RA (Right Ascension) motor control
-- DEC (Declination) motor control
-- Tracking capabilities
-- Manual movement controls
+Si estás utilizando motores, los pines GPIO están configurados de la siguiente manera:
 
-The motor control system uses the Raspberry Pi GPIO pins:
-- RA Motor: GPIO pins 6, 13, 19, 26
-- DEC Motor: GPIO pins 12, 16, 20, 21
+### Motor RA
+- GPIO 6
+- GPIO 13
+- GPIO 19
+- GPIO 26
 
-## Contributing
+### Motor DEC
+- GPIO 12
+- GPIO 16
+- GPIO 20
+- GPIO 21
 
-Feel free to submit issues and enhancement requests!
+## Solución de Problemas
+
+### Error de Cámara
+Si la cámara no se inicializa:
+1. Verifica que la cámara esté correctamente conectada
+2. Asegúrate de que la cámara esté habilitada en raspi-config
+3. Verifica los permisos de usuario
+
+### Error de Motores
+Si los motores no responden:
+1. Verifica las conexiones GPIO
+2. Asegúrate de que el usuario tenga permisos para GPIO
+3. Verifica la alimentación de los motores
+
+## Contribuir
+
+1. Haz un fork del proyecto
+2. Crea una rama para tu característica (`git checkout -b feature/AmazingFeature`)
+3. Haz commit de tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Haz push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+## Licencia
+
+Este proyecto está bajo la Licencia MIT - ver el archivo LICENSE para más detalles.
+
+## Agradecimientos
+
+- Equipo de libcamera por su excelente biblioteca
+- Comunidad de Raspberry Pi
+- Contribuidores del proyecto
+
+## Contacto
+
+[Tu Nombre] - [tu@email.com]
+Link del proyecto: [url-del-repositorio]
