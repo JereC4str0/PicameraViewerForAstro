@@ -1,53 +1,75 @@
-# PicameraViewerForAstro
-![Sample images slide #0](https://github.com/ktakenos/PicameraViewerForAstro/blob/main/images/PicameraViewerForAstro(0).jpg)
-![Sample images slide #1](https://github.com/ktakenos/PicameraViewerForAstro/blob/main/images/PicameraViewerForAstro(1).jpg)
-![Sample images slide #2](https://github.com/ktakenos/PicameraViewerForAstro/blob/main/images/PicameraViewerForAstro(2).jpg)
-![Sample images slide #3](https://github.com/ktakenos/PicameraViewerForAstro/blob/main/images/PicameraViewerForAstro(3).jpg)
+# Telescope Camera Control
 
-**Front end of Raspberry pi HQ camera and controls live view image and motorized equatorial mounts**
+This application provides a GUI interface for controlling a telescope camera system with optional motor control functionality. The code has been structured to separate the motor control logic from the image processing and GUI components.
 
-## [Due to my bits and pieces coding, there are many untidy way arounds in the code. I will sort them out eventually.]
+## Features
 
+- Live camera feed with zoom capability
+- Image stacking
+- Exposure and gain control
+- Threshold detection
+- Level adjustment
+- Optional motor control for RA and DEC axes
 
-**Developed on Raspberry Pi 4B 2GB and HQ camera**
+## File Structure
 
-## Required:
-python 3, <br>
-opencv, <br>
-dcraw with raspberry pi camera raw process (https://github.com/6by9/dcraw)<br>
-temp directory in the same place of the .py resides.<br>
-for repeating writing image file to the temp directory, it is better to have it as a ramdrive.
+- `main.py`: Main application with GUI and image processing
+- `motor_control.py`: Separate module for motor control functionality
+- `temp/`: Directory for temporary image files
+- `Pictures/`: Directory for saved stacked images
 
-## Flow:
-Frame grab in calling raspistill command<br>
-Store jpg file with raw data attached.<br>
-Call raspistill again for next frame.<br>
-Meanwhile, raw conversion starts in calling dcraw.<br>
-16bit tiff file is loaded then image process will be applied.<br>
-Raw conversion takes another jpg file and new frame will be captured.<br>
+## Requirements
 
-The scheme of a ring buffer with two jpg files is realized.<br>
+- Python 3.x
+- OpenCV (cv2)
+- NumPy
+- Pillow (PIL)
+- RPi.GPIO (for motor control)
+- Tkinter
 
-16bit image data is automatically stacked.<br>
-You can track a single star as a guide star.<br>
-In the zoom window an isolated star should be detected as a white circle/blob.<br>
-Any pixel shift of the guide star in the zoom window will be compensated in image stacking when track mode is enabled.<br>
-After predetemined number of frames are stacked, 32bit floating point tiff file will be stored.<br>
+## Usage
 
-By repeating the procedure above, deep sky object can be observed on the screen, as well as saved into a 32bit floating point tiff image.
+### Basic Usage (No Motors)
 
-It also provides GPIO signal controls for stepping motors for equatorial mounts. The signals are 5V high-low so should be connected directly to motor driver circuit board.
+```bash
+python main.py
+```
 
-## Screenshot
-![Screen capture](https://github.com/ktakenos/PicameraViewerForAstro/blob/main/images/vlcsnap-2022-06-01-19h24m46s743.jpg)
+### With Motor Control
 
-Images taken with the software is complied in videos and uploaded in https://www.youtube.com/channel/UCxLBTU-MXtfclGAINipCrsw
+```bash
+python main.py --motors
+```
 
+## GUI Components
 
+1. Main Image Display
+   - Shows live camera feed or stacked image
+   - Click to set zoom position
 
-Known issues:
-It crashes when the exposure time is short. Annoying for planetary photography.
-Compensation direction in declination might be opposite. It should be changeable while running the software.
+2. Zoom Window
+   - Shows detailed view of selected region
+   - Threshold detection for star tracking
 
+3. Control Panel
+   - Exposure control
+   - Gain adjustment
+   - Stack controls (Reset, Save, Show Stack)
+   - Image adjustment controls
 
+## Motor Control
 
+The motor control system is completely separated from the main application and can be enabled with the `--motors` flag. When enabled, it provides:
+
+- RA (Right Ascension) motor control
+- DEC (Declination) motor control
+- Tracking capabilities
+- Manual movement controls
+
+The motor control system uses the Raspberry Pi GPIO pins:
+- RA Motor: GPIO pins 6, 13, 19, 26
+- DEC Motor: GPIO pins 12, 16, 20, 21
+
+## Contributing
+
+Feel free to submit issues and enhancement requests!
